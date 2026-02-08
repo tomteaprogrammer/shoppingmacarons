@@ -71,19 +71,19 @@ window.addEventListener('load', function() {
         return amount.toLocaleString('en-US', {style:'currency', currency:'USD'});
     }
 
-    // 4. HELPER: Confetti Cannon
+    // 4. HELPER: BRAND COLOR CONFETTI CANNON
     function fireConfetti() {
         const isMobile = window.innerWidth < 600;
         const originX = isMobile ? 0.5 : 0.9;
         const originY = 0.9; 
 
-        // UPDATED: ELEGANT COLOR PALETTE (Macaron & Champagne)
+        // COLORS EXTRACTED FROM YOUR SITE SCREENSHOTS
         const colors = [
-            '#D4AF37', // Gold (Brand)
-            '#ffffff', // White
-            '#F3E5AB', // Vanilla / Champagne
-            '#FFD1DC', // Pastel Pink
-            '#C1E1C1'  // Pastel Pistachio
+            '#D4AF37', // Brand Gold (Buttons)
+            '#004F59', // Brand Deep Teal (Header/Footer)
+            '#C9B091', // Brand Beige/Tan (Darker Accent)
+            '#FFFFFF', // White (Contrast)
+            '#F0EAD6'  // Light Cream (Highlight)
         ];
 
         confetti({
@@ -313,7 +313,7 @@ window.addEventListener('load', function() {
 </script>
 
 <style>
-/* --- V53 STYLES --- */
+/* --- V54 STYLES --- */
 
 /* 1. GLOBAL PADDING */
 body { padding-bottom: 130px !important; }
