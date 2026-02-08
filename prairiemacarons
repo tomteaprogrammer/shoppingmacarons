@@ -1,0 +1,38 @@
+/* Reduce Footer Height */
+#footer-sections .page-section {
+    min-height: 0px !important;
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+}
+
+/* Remove inner content padding */
+#footer-sections .page-section .content-wrapper {
+    padding-top: 20px !important; /* Adjust this value (e.g., 0px) for even less space */
+    padding-bottom: 20px !important; /* Adjust this value (e.g., 0px) for even less space */
+}
+@font-face {
+
+font-family: 'fonde';
+
+    src: URL('https://static1.squarespace.com/static/5f0926203a28cd44b422fcc8/t/66359580477764055f49f031/1714787712929/fonde.ttfFontURL');
+
+  }
+
+h1 {
+
+font-family: 'fonde';
+
+}
+
+// MAKE BURGER MENU SMALLER //
+.burger-inner.header-menu-icon-tripleLineHamburger .top-bun {
+  transform: translatey(-7px);
+}
+
+.burger-inner.header-menu-icon-tripleLineHamburger .bottom-bun {
+  transform: translatey(7px);
+}
+
+.burger-inner > div {
+  width: 70% !important;
+}
