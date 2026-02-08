@@ -45,9 +45,9 @@ window.addEventListener('load', function() {
         }, 1000);
     }, 500);
 
+    const countBadge = document.getElementById('promo-count');
     const mainText = document.getElementById('promo-main');
     const subText = document.getElementById('promo-sub');
-    const countBadge = document.getElementById('promo-count');
     const progressBar = document.getElementById('progress-indicator');
 
     // 2. HELPER: Native Cart Reader
@@ -116,6 +116,61 @@ window.addEventListener('load', function() {
         }
     }
 
+    // --- NEW: V49 CART PAGE INJECTION LOGIC ---
+    function updateCartPageDisplay(qty) {
+        // Only run if we are on the cart page
+        if (!document.querySelector('.cart-container') && !document.querySelector('.sqs-cart-container')) return;
+
+        const subtotalEl = document.querySelector('.cart-subtotal-price, .sqs-cart-subtotal .price, [data-test="cart-subtotal"] .value');
+        if (!subtotalEl) return;
+
+        // Calculate Values
+        const discountAmount = calcSavings(qty);
+        
+        // Find or Create our Custom Rows
+        let discountRow = document.getElementById('custom-discount-row');
+        let totalRow = document.getElementById('custom-total-row');
+        
+        // If user qualifies for discount (12+)
+        if (discountAmount > 0) {
+            // Get raw subtotal string (e.g. "$54.00") and parse it
+            let rawSub = subtotalEl.textContent.replace(/[^0-9.-]+/g,"");
+            let subtotalVal = parseFloat(rawSub);
+            if (isNaN(subtotalVal)) return;
+
+            let finalTotal = subtotalVal - discountAmount;
+
+            // 1. Create Discount Row if missing
+            if (!discountRow) {
+                discountRow = document.createElement('div');
+                discountRow.id = 'custom-discount-row';
+                discountRow.className = 'custom-cart-row';
+                // Insert after subtotal
+                subtotalEl.parentNode.parentNode.appendChild(discountRow);
+            }
+            
+            // 2. Create Total Row if missing
+            if (!totalRow) {
+                totalRow = document.createElement('div');
+                totalRow.id = 'custom-total-row';
+                totalRow.className = 'custom-cart-row';
+                subtotalEl.parentNode.parentNode.appendChild(totalRow);
+            }
+
+            // Update Text
+            discountRow.innerHTML = `<span>Bulk Discount:</span> <span class="custom-discount-val">-${formatMoney(discountAmount)}</span>`;
+            totalRow.innerHTML = `<span>Estimated Total:</span> <span class="custom-total-val">${formatMoney(finalTotal)}</span>`;
+            
+            // Force Strikethrough on original
+            document.body.classList.add('has-custom-discount');
+        } else {
+            // Remove rows if qty drops below 12
+            if (discountRow) discountRow.remove();
+            if (totalRow) totalRow.remove();
+            document.body.classList.remove('has-custom-discount');
+        }
+    }
+
     // 7. THE LOGIC ENGINE
     let currentQty = 0; 
     let lastKnownFullBoxes = -1; 
@@ -135,8 +190,12 @@ window.addEventListener('load', function() {
                 const nativeQty = getNativeHeaderCount();
                 if (nativeQty > 0) qty = nativeQty;
             }
+            
             currentQty = qty;
             countBadge.textContent = qty;
+            
+            // RUN CART PAGE UPDATE
+            updateCartPageDisplay(qty);
 
             const currentFullBoxes = Math.floor(qty / BOX_SIZE);
 
@@ -149,6 +208,7 @@ window.addEventListener('load', function() {
                 }
             }
             lastKnownFullBoxes = currentFullBoxes;
+            
             const remainder = qty % BOX_SIZE;
             const isPerfect = (remainder === 0 && qty > 0);
             const fullBoxes = Math.floor(qty / BOX_SIZE);
@@ -210,7 +270,9 @@ window.addEventListener('load', function() {
             mainText.innerHTML = mainMsg;
             subText.innerHTML = subMsg; 
             progressBar.style.width = pct + "%";
-        }).catch(err => console.error(err));
+
+        })
+        .catch(err => console.error(err));
     }
 
     updateWidget();
@@ -229,7 +291,7 @@ window.addEventListener('load', function() {
 </script>
 
 <style>
-/* --- V48 STYLES --- */
+/* --- V49 STYLES --- */
 
 /* 1. GLOBAL PADDING */
 body { padding-bottom: 130px !important; }
@@ -351,30 +413,40 @@ body.cart-locked [data-test="checkout-button"] {
     background: #ccc !important;
 }
 
-/* --- V48: ROBUST CART PAGE FIX --- */
+/* --- V49: FORCED CART PAGE ROWS --- */
 
-/* 1. Subtotal (Strikethrough & Grey) */
-.cart-subtotal, .cart-subtotal-price, .sqs-cart-subtotal {
+/* 1. Cross out the original Subtotal when discount is active */
+body.has-custom-discount .cart-subtotal-price, 
+body.has-custom-discount .sqs-cart-subtotal .price,
+body.has-custom-discount [data-test="cart-subtotal"] .value {
     text-decoration: line-through !important;
     color: #777 !important;
-    opacity: 0.7;
+    opacity: 0.6;
 }
 
-/* 2. Discounts (Force Visible & Red) */
-.cart-discounts, .cart-discount, .sqs-cart-discount, [data-test="cart-discount"] {
-    display: flex !important;
-    visibility: visible !important;
-    color: #d93025 !important; /* Red to stand out on beige */
-    font-weight: 700 !important;
-    font-size: 1.1em;
+/* 2. Custom Rows Styling */
+.custom-cart-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
 }
 
-/* 3. Total (Force Visible & Black) */
-.cart-total, .cart-total-price, .sqs-cart-total, [data-test="cart-total"] {
-    display: flex !important;
-    visibility: visible !important;
-    color: #000000 !important; /* Pure Black */
-    font-weight: 900 !important;
-    font-size: 1.4em !important;
+/* 3. Discount Row Specifics */
+#custom-discount-row {
+    color: #d93025; /* Red */
+    font-weight: 600;
+}
+
+/* 4. Total Row Specifics */
+#custom-total-row {
+    color: #000;
+    font-weight: 800;
+    font-size: 1.2em;
+    margin-top: 5px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
 }
 </style>
