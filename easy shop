@@ -14,8 +14,11 @@ window.addEventListener('load', function() {
     const COOKIE_IMG_URL = 'https://images.squarespace-cdn.com/content/v1/69865a36c6337862010d7605/1770412600346-LMCMPQMW489CISGETV0R/Lemon_Angle+2.png?format=1000w';
     
     // PRICING LOGIC
-    const DISCOUNT_PER_ITEM = 0.75; 
-    const MIN_QTY_FOR_DISCOUNT = 12;
+    // Tier 1: 6-11 Cookies = Flat $2.00 Savings
+    // Tier 2: 12+ Cookies = $0.75 off PER cookie
+    const DISCOUNT_PER_ITEM_BULK = 0.75; 
+    const DISCOUNT_FLAT_HALF_DOZEN = 2.00;
+    const MIN_QTY_FOR_BULK = 12;
     // ----------------
     
     // 1. CREATE WIDGET UI
@@ -27,7 +30,7 @@ window.addEventListener('load', function() {
                 <img src="${COOKIE_IMG_URL}" class="cookie-icon" alt="Cookie">
                 <div class="bar-text">
                     <div id="promo-main">Start Your Box <div class="min-msg">Minimum Order: 6</div></div>
-                    <div id="promo-sub">Buy 12 and SAVE $9.00!</div>
+                    <div id="promo-sub">Buy 6 Save $2! Buy 12 Save $9!</div>
                 </div>
             </div>
             <div class="bar-right">
@@ -63,27 +66,27 @@ window.addEventListener('load', function() {
 
     // 3. HELPER: Calculate Savings
     function calcSavings(q) {
-        if (q < MIN_QTY_FOR_DISCOUNT) return 0;
-        return q * DISCOUNT_PER_ITEM;
+        if (q < 6) return 0; // Less than 6: No discount
+        if (q < 12) return DISCOUNT_FLAT_HALF_DOZEN; // 6-11: Save $2.00 total
+        return q * DISCOUNT_PER_ITEM_BULK; // 12+: Save $0.75 per item
     }
 
     function formatMoney(amount) {
         return amount.toLocaleString('en-US', {style:'currency', currency:'USD'});
     }
 
-    // 4. HELPER: BRAND COLOR CONFETTI CANNON
+    // 4. HELPER: Brand Color Confetti
     function fireConfetti() {
         const isMobile = window.innerWidth < 600;
         const originX = isMobile ? 0.5 : 0.9;
         const originY = 0.9; 
 
-        // COLORS EXTRACTED FROM YOUR SITE SCREENSHOTS
         const colors = [
-            '#D4AF37', // Brand Gold (Buttons)
-            '#004F59', // Brand Deep Teal (Header/Footer)
-            '#C9B091', // Brand Beige/Tan (Darker Accent)
-            '#FFFFFF', // White (Contrast)
-            '#F0EAD6'  // Light Cream (Highlight)
+            '#D4AF37', // Brand Gold
+            '#004F59', // Brand Deep Teal
+            '#C9B091', // Brand Beige
+            '#FFFFFF', // White
+            '#F0EAD6'  // Cream
         ];
 
         confetti({
@@ -110,24 +113,20 @@ window.addEventListener('load', function() {
         });
     }
 
-    // 6. HELPER: Inject Navigation Buttons (Back & Cart)
+    // 6. HELPER: Inject Navigation Buttons
     function injectNavButtons() {
         if (document.getElementById('custom-nav-wrapper')) return;
-
-        // TARGET: Product Title (Works on Desktop & Mobile)
         const titleElement = document.querySelector('h1.ProductItem-details-title, h1.product-title, .ProductItem-summary h1, .product-item h1');
 
         if (titleElement) {
             const wrapper = document.createElement('div');
             wrapper.id = 'custom-nav-wrapper';
             
-            // A. Back Button (Left)
             const backBtn = document.createElement('a');
             backBtn.className = 'nav-btn back-btn';
             backBtn.href = SHOP_URL;
             backBtn.innerHTML = '← Back to Shop';
 
-            // B. Cart Button (Right)
             const cartBtn = document.createElement('a');
             cartBtn.className = 'nav-btn cart-btn';
             cartBtn.href = CART_URL;
@@ -142,8 +141,6 @@ window.addEventListener('load', function() {
 
             wrapper.appendChild(backBtn);
             wrapper.appendChild(cartBtn);
-
-            // Inject immediately BEFORE the title
             titleElement.parentNode.insertBefore(wrapper, titleElement);
         }
     }
@@ -178,7 +175,8 @@ window.addEventListener('load', function() {
                 subtotalEl.parentNode.parentNode.appendChild(totalRow);
             }
 
-            discountRow.innerHTML = `<span>Bulk Discount:</span> <span class="custom-discount-val">-${formatMoney(discountAmount)}</span>`;
+            // TEXT UPDATE HERE: "Quantity Discount Applied"
+            discountRow.innerHTML = `<span>Quantity Discount Applied:</span> <span class="custom-discount-val">-${formatMoney(discountAmount)}</span>`;
             totalRow.innerHTML = `<span>Estimated Total:</span> <span class="custom-total-val">${formatMoney(finalTotal)}</span>`;
             document.body.classList.add('has-custom-discount');
         } else {
@@ -194,7 +192,7 @@ window.addEventListener('load', function() {
 
     function updateWidget() {
         injectCheckoutWarning();
-        injectNavButtons(); // Run the nav button injector
+        injectNavButtons();
 
         fetch('/api/commerce/cart?t=' + Date.now()) 
         .then(response => response.json())
@@ -243,7 +241,7 @@ window.addEventListener('load', function() {
             } else if (qty === 0) {
                 theme = "neutral";
                 mainMsg = `Start Your Box <div class="min-msg">Minimum Order: 6</div>`;
-                subMsg = "Buy 12 and SAVE $9.00!"; 
+                subMsg = "Buy 6 Save $2.00!"; 
                 document.body.classList.remove('cart-locked');
             } else if (isPerfect) {
                 document.body.classList.remove('cart-locked');
@@ -258,7 +256,7 @@ window.addEventListener('load', function() {
                 } else if (qty === 6) {
                     theme = "success"; 
                     mainMsg = "1 Box Full!";
-                    subMsg = "Add 6 more to SAVE $9.00!";
+                    subMsg = `You saved $2.00! Add 6 more to save $9.00!`;
                 } else {
                     theme = "gold";
                     mainMsg = `${fullBoxes} Boxes Perfect!`;
@@ -298,9 +296,7 @@ window.addEventListener('load', function() {
     setInterval(updateWidget, 800);
 
     widget.addEventListener('click', (e) => {
-        // Allow clicks on nav buttons
         if (e.target.closest('#custom-nav-wrapper')) return;
-        
         if (e.target.tagName === 'A') return;
         e.preventDefault();
         if (currentQty >= BULK_LIMIT) {
@@ -313,68 +309,32 @@ window.addEventListener('load', function() {
 </script>
 
 <style>
-/* --- V54 STYLES --- */
+/* --- V56 STYLES --- */
 
 /* 1. GLOBAL PADDING */
 body { padding-bottom: 130px !important; }
 @media (max-width: 600px) { body { padding-bottom: 110px !important; } }
 
-/* 2. CUSTOM NAV BUTTONS (Flexbox Layout: Left & Right) */
+/* 2. CUSTOM NAV BUTTONS */
 #custom-nav-wrapper {
-    display: flex;
-    justify-content: space-between; /* Pushes items to edges */
-    align-items: center;
-    width: 100%;
-    margin-bottom: 25px; /* Space before title */
-    padding: 0 2px;
-    box-sizing: border-box;
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; margin-bottom: 25px; padding: 0 2px; box-sizing: border-box;
 }
-
 .nav-btn {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 700; /* Bolder */
-    text-decoration: none !important;
-    font-size: 13px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    cursor: pointer;
-    color: #ffffff !important; 
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    opacity: 0.95;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px; /* Space between text and icon */
+    font-family: 'Poppins', sans-serif; font-weight: 700; text-decoration: none !important;
+    font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
+    color: #ffffff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    opacity: 0.95; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;
 }
-
-/* Hover Effect */
-.nav-btn:hover {
-    color: #D4AF37 !important;
-    opacity: 1;
-}
-
+.nav-btn:hover { color: #D4AF37 !important; opacity: 1; }
 .back-btn:hover { transform: translateX(-3px); }
 .cart-btn:hover { transform: translateY(-2px); }
-
-/* Cart Icon Sizing */
-.nav-cart-icon {
-    display: block;
-    width: 18px;
-    height: 18px;
-}
+.nav-cart-icon { display: block; width: 18px; height: 18px; }
 
 /* 3. CHECKOUT WARNING */
 .qty-warning-msg {
-    display: none; 
-    text-align: center;
-    font-size: 14px;
-    color: #d93025; 
-    margin-bottom: 15px; 
-    font-weight: 600;
-    line-height: 1.5;
-    font-family: 'Poppins', sans-serif;
-    padding: 0 10px;
-    white-space: pre-wrap;
+    display: none; text-align: center; font-size: 14px; color: #d93025; margin-bottom: 15px; 
+    font-weight: 600; line-height: 1.5; font-family: 'Poppins', sans-serif; padding: 0 10px; white-space: pre-wrap;
 }
 body.cart-locked .qty-warning-msg { display: block; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
